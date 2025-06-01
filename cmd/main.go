@@ -17,32 +17,35 @@ import (
 // the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
+	////TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
+	//// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
+	//s := "gopher"
+	//fmt.Printf("Hello and welcome, %s!\n", s)
+	//
+	//for i := 1; i <= 5; i++ {
+	//	//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
+	//	// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
+	//	fmt.Println("i =", 100/i)
+	//}
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
-	}
+	//	yml := `
+	//%YAML 1.2
+	//---
+	//a: 1
+	//b: c
+	//`
+	//var v struct {
+	//	A int
+	//	B string
+	//}
+	//if err := yaml.Unmarshal([]byte(yml), &v); err != nil {
+	//	fmt.Printf("error: %v\n", err)
+	//} else {
+	//	fmt.Printf("a: %v\n", v.A)
+	//}
 
-	yml := `
-%YAML 1.2
----
-a: 1
-b: c
-`
-	var v struct {
-		A int
-		B string
-	}
-	if err := yaml.Unmarshal([]byte(yml), &v); err != nil {
-		fmt.Printf("error: %v\n", err)
-	} else {
-		fmt.Printf("a: %v\n", v.A)
-	}
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Printf("[%s] Démarrage du programme\n", timestamp)
 
 	type Task struct {
 		Run string
@@ -63,23 +66,25 @@ b: c
 	if err := yaml.Unmarshal(data, &param); err != nil {
 		fmt.Printf("error: %v\n", err)
 	} else {
-		fmt.Printf("NoSleep: %v\n", param.Global.NoSleep)
-
-		if param.Global.NoSleep {
-			go noSleep.PasSleep()
-		}
 
 		// 2. Préparer le fichier de log
 		logFileName := "program_output.log"
 		logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
-			log.Fatalf("Erreur lors de l'ouverture du fichier de log : %v", err)
+			log.Fatalf("Erreur lors de l'ouverture du fichier de log %s : %v", logFileName, err)
 		}
 		defer logFile.Close()
 
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		fmt.Printf("[%s] NoSleep: %v\n", timestamp, param.Global.NoSleep)
+
+		if param.Global.NoSleep {
+			go noSleep.PasSleep()
+		}
+
 		if len(param.Tasks) > 0 {
 			for _, task := range param.Tasks {
-				fmt.Println(task.Run)
+				//fmt.Println(task.Run)
 
 				run(task.Run, logFile)
 			}
@@ -113,7 +118,8 @@ func run(run string, file *os.File) {
 	// 5. Démarrer la commande en arrière-plan
 	// Nous utilisons Start() au lieu de Run() car nous voulons lire les pipes
 	// pendant que la commande est en cours d'exécution.
-	fmt.Printf("Exécution de la commande : %s %s\n", command, strings.Join(args, " "))
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Printf("[%s] Exécution de la commande : %s %s\n", timestamp, command, strings.Join(args, " "))
 	err = cmd.Start()
 	if err != nil {
 		log.Fatalf("Erreur lors du démarrage de la commande : %v", err)
@@ -165,5 +171,6 @@ func run(run string, file *os.File) {
 		log.Fatalf("Erreur fatale lors de l'exécution : %v", err)
 	}
 
-	fmt.Println("\nCommande terminée. La sortie a été affichée sur la console et enregistrée dans", file)
+	timestamp = time.Now().Format("2006-01-02 15:04:05")
+	fmt.Printf("[%s] Commande terminée\n", timestamp)
 }
