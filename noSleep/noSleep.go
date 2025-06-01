@@ -21,7 +21,7 @@ func PasSleep() {
 
 	pulse := time.NewTicker(pulseTime)
 
-	logutils.Printf("Starting keep alive poll... (silence)\n")
+	logutils.Printf("Starting keep alive poll... (silence)")
 	for {
 		select {
 		case <-pulse.C:
@@ -29,7 +29,7 @@ func PasSleep() {
 			if err != nil {
 				s := fmt.Sprintf("%v", err)
 				if s != "L’opération a réussi." {
-					logutils.Printf("Erreur pour changer l'état de veille: %v\n", err)
+					logutils.Printf("Erreur pour changer l'état de veille: %v", err)
 				}
 			}
 		}

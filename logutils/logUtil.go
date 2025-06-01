@@ -49,9 +49,14 @@ func Printf(format string, args ...interface{}) {
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)
-	final := fmt.Sprintf("[%s] %s", timestamp, msg)
+	final := fmt.Sprintf("[%s] %s\n", timestamp, msg)
 
 	fmt.Fprint(outputWriter, final)
+}
+
+func Fatalf(format string, args ...interface{}) {
+	Printf(format, args...)
+	os.Exit(1)
 }
 
 func CloseLog() {
