@@ -2,7 +2,7 @@ package noSleep
 
 import (
 	"fmt"
-	"log"
+	"gorunner/logutils"
 	"syscall"
 	"time"
 )
@@ -21,7 +21,7 @@ func PasSleep() {
 
 	pulse := time.NewTicker(pulseTime)
 
-	log.Println("Starting keep alive poll... (silence)")
+	logutils.Printf("Starting keep alive poll... (silence)\n")
 	for {
 		select {
 		case <-pulse.C:
@@ -29,7 +29,7 @@ func PasSleep() {
 			if err != nil {
 				s := fmt.Sprintf("%v", err)
 				if s != "L’opération a réussi." {
-					log.Printf("Erreur pour changer l'état de veille: %v\n", err)
+					logutils.Printf("Erreur pour changer l'état de veille: %v\n", err)
 				}
 			}
 		}

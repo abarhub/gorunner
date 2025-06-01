@@ -1,6 +1,7 @@
 
 global:
   no_sleep: true
+  log_file: program_output.log
 
 tasks:
   - run: cmd /C echo coucou
