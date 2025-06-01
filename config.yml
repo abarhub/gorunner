@@ -2,8 +2,8 @@
 global:
   no_sleep: true
 
-task:
-  - run: echo coucou
-  - run: echo suite
+tasks:
+  - run: cmd /C echo coucou
+  - run: cmd /C echo suite
 
 
