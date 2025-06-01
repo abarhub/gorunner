@@ -1,0 +1,9 @@
+
+global:
+  no_sleep: true
+
+task:
+  - run: echo coucou
+  - run: echo suite
+
+
