@@ -16,5 +16,7 @@ tasks:
     name: "commande 3"
     run: cmd /C dir
     enable: true
+    encoding: Windows1252
+    #encoding: ISO88591
 
 

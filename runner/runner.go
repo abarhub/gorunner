@@ -2,10 +2,13 @@ package runner
 
 import (
 	"bufio"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 	"gorunner/config"
 	"gorunner/logutils"
 	"gorunner/noSleep"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -68,8 +71,8 @@ func run(task config.Task) {
 	// afin d'éviter un blocage si l'un des flux est rempli.
 
 	// Lancer les goroutines
-	go processOutput(stdoutPipe, "")      // Pour la sortie standard
-	go processOutput(stderrPipe, "ERR: ") // Pour la sortie d'erreur (on peut ajouter un préfixe distinctif)
+	go processOutput(stdoutPipe, "", task.Encoding)      // Pour la sortie standard
+	go processOutput(stderrPipe, "ERR: ", task.Encoding) // Pour la sortie d'erreur (on peut ajouter un préfixe distinctif)
 
 	// 7. Attendre que la commande se termine
 	err = cmd.Wait() // cmd.Wait() attend la fin de l'exécution et collecte le code de sortie
@@ -91,10 +94,14 @@ func run(task config.Task) {
 	logutils.Printf("Fin de la tache %s", task.Name)
 }
 
-func processOutput(reader io.Reader, prefix string) {
+func processOutput(reader io.Reader, prefix string, encoding string) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		if encoding != "" {
+			line = convertie(line, encoding)
+		}
 
 		// Afficher sur la console
 		logutils.Printf("%s%s", prefix, line)
@@ -103,4 +110,50 @@ func processOutput(reader io.Reader, prefix string) {
 	if err := scanner.Err(); err != nil {
 		logutils.Printf("Erreur lors de la lecture du flux %s : %v", prefix, err)
 	}
+}
+
+func convertie(line string, encoding string) string {
+	if encoding == "Windows1252" {
+		s, err := decodeWindows1252ToUTF8(line)
+		if err != nil {
+			return line
+		} else {
+			return s
+		}
+	} else if encoding == "ISO88591" {
+		s, err := decodeISO88591ToUTF8(line)
+		if err != nil {
+			return line
+		} else {
+			return s
+		}
+	} else {
+		logutils.Fatalf("Type d'encodage non géré: %s", encoding)
+		return line
+	}
+
+}
+
+// decodeWindows1252ToUTF8 convertit une chaîne encodée en Windows-1252 en UTF-8.
+func decodeWindows1252ToUTF8(s string) (string, error) {
+	reader := strings.NewReader(s)
+	decoder := charmap.Windows1252.NewDecoder()
+	transformedReader := transform.NewReader(reader, decoder)
+	bytes, err := ioutil.ReadAll(transformedReader)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+// decodeISO88591ToUTF8 convertit une chaîne encodée en ISO-8859-1 en UTF-8.
+func decodeISO88591ToUTF8(s string) (string, error) {
+	reader := strings.NewReader(s)
+	decoder := charmap.ISO8859_1.NewDecoder() // Utilisation de charmap.ISO8859_1
+	transformedReader := transform.NewReader(reader, decoder)
+	bytes, err := ioutil.ReadAll(transformedReader)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
