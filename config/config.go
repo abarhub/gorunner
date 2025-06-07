@@ -26,7 +26,17 @@ var param Parametres
 var once sync.Once
 
 func initConfig() {
-	data, err := os.ReadFile("config.yml")
+
+	configFile := "config.yml"
+
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
+
+	fmt.Println("configFile:", configFile)
+	fmt.Println("len:", len(os.Args))
+
+	data, err := os.ReadFile(configFile)
 	if err != nil {
 		panic(err)
 	}
