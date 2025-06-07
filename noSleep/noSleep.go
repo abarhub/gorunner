@@ -28,7 +28,7 @@ func PasSleep() {
 			_, _, err := setThreadExecStateProc.Call(uintptr(EsSystemRequired))
 			if err != nil {
 				s := fmt.Sprintf("%v", err)
-				if s != "L’opération a réussi." {
+				if s != "L’opération a réussi." && s != "The operation completed successfully." {
 					logutils.Printf("Erreur pour changer l'état de veille: %v", err)
 				}
 			}
