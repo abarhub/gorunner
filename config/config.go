@@ -8,7 +8,10 @@ import (
 )
 
 type Task struct {
-	Run string
+	Name     string
+	Run      string
+	Encoding string
+	Enable   bool
 }
 
 type Parametres struct {
@@ -33,6 +36,11 @@ func initConfig() {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
 	} else {
+		for i, t := range param2.Tasks {
+			if t.Name == "" {
+				t.Name = fmt.Sprintf("task-%d", i)
+			}
+		}
 		param = param2
 	}
 }
