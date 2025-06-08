@@ -16,8 +16,9 @@ type Task struct {
 
 type Parametres struct {
 	Global struct {
-		NoSleep bool   `yaml:"no_sleep"`
-		LogFile string `yaml:"log_file"`
+		NoSleep  bool   `yaml:"no_sleep"`
+		LogFile  string `yaml:"log_file"`
+		EtatFile string `yaml:"etat_file"`
 	}
 	Tasks []Task
 }

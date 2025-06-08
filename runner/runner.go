@@ -9,11 +9,15 @@ import (
 	"gorunner/logutils"
 	"gorunner/noSleep"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
 )
+
+var ETAT_EN_COUR = "en_cours"
+var ETAT_FIN = "fin"
 
 type ExecutionTache struct {
 	duree   time.Duration
@@ -24,6 +28,11 @@ type ExecutionTache struct {
 func Run(param config.Parametres) {
 	if param.Global.NoSleep {
 		go noSleep.PasSleep()
+	}
+
+	err := ecrireEtat(param, ETAT_FIN)
+	if err != nil {
+		return
 	}
 
 	if len(param.Tasks) > 0 {
@@ -57,6 +66,22 @@ func Run(param config.Parametres) {
 		}
 
 	}
+
+	err = ecrireEtat(param, ETAT_FIN)
+	if err != nil {
+		return
+	}
+}
+
+func ecrireEtat(param config.Parametres, etat string) error {
+	if param.Global.EtatFile != "" {
+		err := os.WriteFile(param.Global.EtatFile, []byte(etat), 0644)
+		if err != nil {
+			logutils.Errorf("Erreur pour écrire dans le fichier %s : %v", param.Global.EtatFile, err)
+			return err
+		}
+	}
+	return nil
 }
 
 func run(task config.Task) error {

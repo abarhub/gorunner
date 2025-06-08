@@ -2,6 +2,7 @@
 global:
   no_sleep: true
   log_file: logs/program_output.log
+  etat_file : etat_backup.txt
 
 tasks:
   -
