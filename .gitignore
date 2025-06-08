@@ -1,4 +1,5 @@
 
 .idea/
-program_output.log
+logs/program_output.log
 out/
+logs/

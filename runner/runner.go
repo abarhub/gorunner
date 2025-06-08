@@ -2,18 +2,24 @@ package runner
 
 import (
 	"bufio"
+	"errors"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 	"gorunner/config"
 	"gorunner/logutils"
 	"gorunner/noSleep"
 	"io"
-	"io/ioutil"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
 )
+
+type ExecutionTache struct {
+	duree   time.Duration
+	erreur  bool
+	execute bool
+}
 
 func Run(param config.Parametres) {
 	if param.Global.NoSleep {
@@ -21,17 +27,39 @@ func Run(param config.Parametres) {
 	}
 
 	if len(param.Tasks) > 0 {
+		stat := make(map[string]ExecutionTache)
 		for _, task := range param.Tasks {
+			tache := ExecutionTache{duree: 0, erreur: false, execute: false}
 			if task.Enable {
-				run(task)
+				tache.execute = true
+				debut := time.Now()
+				err := run(task)
+				diff := time.Now().Sub(debut)
+				tache.duree = diff
+				if err != nil {
+					tache.erreur = true
+					logutils.Printf("Erreur pour la tache %s : %v", task.Name, err)
+				}
 			} else {
+				tache.execute = false
 				logutils.Printf("Tache %s ignore", task.Name)
 			}
+			stat[task.Name] = tache
 		}
+		logutils.Printf("Résumé :")
+		for nom, task := range stat {
+			if task.execute {
+				logutils.Printf("Tache %s : duree=%v, erreur=%v", nom, task.duree, task.erreur)
+			} else {
+				logutils.Printf("Tache %s : non executé", nom)
+			}
+
+		}
+
 	}
 }
 
-func run(task config.Task) {
+func run(task config.Task) error {
 
 	run := task.Run
 	stringSlice := strings.Split(run, " ")
@@ -50,11 +78,13 @@ func run(task config.Task) {
 	// Nous allons lire la sortie de la commande via ces pipes
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		logutils.Fatalf("Erreur lors de la création du pipe pour Stdout : %v", err)
+		logutils.Errorf("Erreur lors de la création du pipe pour Stdout : %v", err)
+		return err
 	}
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		logutils.Fatalf("Erreur lors de la création du pipe pour Stderr : %v", err)
+		logutils.Errorf("Erreur lors de la création du pipe pour Stderr : %v", err)
+		return err
 	}
 
 	// 5. Démarrer la commande en arrière-plan
@@ -63,7 +93,8 @@ func run(task config.Task) {
 	logutils.Printf("Exécution de la commande : %s %s", command, strings.Join(args, " "))
 	err = cmd.Start()
 	if err != nil {
-		logutils.Fatalf("Erreur lors du démarrage de la commande : %v", err)
+		logutils.Errorf("Erreur lors du démarrage de la commande : %v", err)
+		return err
 	}
 
 	// 6. Goroutines pour lire la sortie standard et d'erreur ligne par ligne
@@ -80,18 +111,19 @@ func run(task config.Task) {
 	diff := time.Now().Sub(debut)
 	if err != nil {
 		// Afficher l'erreur dans la console et dans le log (si la commande a échoué)
-		//logutils.Fatalf("Erreur fatale lors de l'exécution : %v", err)
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				statusCode = status.ExitStatus()
 			}
 		}
-		logutils.Printf("Erreur lors de l'exécution de la commande : %v", err)
+		logutils.Errorf("Erreur lors de l'exécution de la commande : %v", err)
 	}
 
 	logutils.Printf("Commande terminée, status code : %d, durée : %v", statusCode, diff)
 
 	logutils.Printf("Fin de la tache %s", task.Name)
+	return nil
 }
 
 func processOutput(reader io.Reader, prefix string, encoding string) {
@@ -128,7 +160,7 @@ func convertie(line string, encoding string) string {
 			return s
 		}
 	} else {
-		logutils.Fatalf("Type d'encodage non géré: %s", encoding)
+		logutils.Errorf("Type d'encodage non géré: %s", encoding)
 		return line
 	}
 
@@ -139,7 +171,7 @@ func decodeWindows1252ToUTF8(s string) (string, error) {
 	reader := strings.NewReader(s)
 	decoder := charmap.Windows1252.NewDecoder()
 	transformedReader := transform.NewReader(reader, decoder)
-	bytes, err := ioutil.ReadAll(transformedReader)
+	bytes, err := io.ReadAll(transformedReader)
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +183,7 @@ func decodeISO88591ToUTF8(s string) (string, error) {
 	reader := strings.NewReader(s)
 	decoder := charmap.ISO8859_1.NewDecoder() // Utilisation de charmap.ISO8859_1
 	transformedReader := transform.NewReader(reader, decoder)
-	bytes, err := ioutil.ReadAll(transformedReader)
+	bytes, err := io.ReadAll(transformedReader)
 	if err != nil {
 		return "", err
 	}
