@@ -5,6 +5,7 @@ import (
 	"gorunner/config"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -25,7 +26,13 @@ func initLogger() {
 		os.Exit(1)
 	}
 
-	logFile, err := os.OpenFile(param.Global.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	f := param.Global.LogFile
+	if strings.HasSuffix(f, ".log") {
+		f = strings.TrimSuffix(f, ".log")
+		f = f + "." + time.Now().Format("2006-01-02") + ".log"
+	}
+
+	logFile, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Erreur ouverture fichier log: %v\n", err)
 		os.Exit(1)
@@ -54,9 +61,8 @@ func Printf(format string, args ...interface{}) {
 	fmt.Fprint(outputWriter, final)
 }
 
-func Fatalf(format string, args ...interface{}) {
-	Printf(format, args...)
-	os.Exit(1)
+func Errorf(format string, args ...interface{}) {
+	Printf("ERROR: "+format, args...)
 }
 
 func CloseLog() {
