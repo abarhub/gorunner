@@ -8,6 +8,7 @@ import (
 	"gorunner/config"
 	"gorunner/logutils"
 	"gorunner/noSleep"
+	"gorunner/stat"
 	"io"
 	"os"
 	"os/exec"
@@ -18,12 +19,6 @@ import (
 
 var ETAT_EN_COUR = "en_cours"
 var ETAT_FIN = "fin"
-
-type ExecutionTache struct {
-	duree   time.Duration
-	erreur  bool
-	execute bool
-}
 
 func Run(param config.Parametres) {
 	if param.Global.NoSleep {
@@ -36,31 +31,32 @@ func Run(param config.Parametres) {
 	}
 
 	if len(param.Tasks) > 0 {
-		stat := make(map[string]ExecutionTache)
+		stat2 := stat.CreateStat()
 		for _, task := range param.Tasks {
-			tache := ExecutionTache{duree: 0, erreur: false, execute: false}
+			tache := stat.CreateExecutionTache()
 			if task.Enable {
-				tache.execute = true
+				tache.Execute = true
 				debut := time.Now()
 				err := run(task)
 				diff := time.Now().Sub(debut)
-				tache.duree = diff
+				tache.Duree = diff
 				if err != nil {
-					tache.erreur = true
+					tache.Erreur = true
 					logutils.Printf("Erreur pour la tache %s : %v", task.Name, err)
 				}
 			} else {
-				tache.execute = false
+				tache.Execute = false
 				logutils.Printf("Tache %s ignore", task.Name)
 			}
-			stat[task.Name] = tache
+			stat2.Put(task.Name, tache)
 		}
 		logutils.Printf("Résumé :")
-		for nom, task := range stat {
-			if task.execute {
-				logutils.Printf("Tache %s : duree=%v, erreur=%v", nom, task.duree, task.erreur)
+		for _, taskName := range stat2.Keys() {
+			task := stat2.Get(taskName)
+			if task.Execute {
+				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, task.Duree, task.Erreur)
 			} else {
-				logutils.Printf("Tache %s : non executé", nom)
+				logutils.Printf("Tache %s : non executé", taskName)
 			}
 
 		}
