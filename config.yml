@@ -1,7 +1,8 @@
 
 global:
   no_sleep: true
-  log_file: logs/program_output.log
+  #log_file: logs/program_output.log
+  log_file: logs/program_output.{{ .Now }}.log
   etat_file : etat_backup.txt
 
 tasks:

@@ -1,12 +1,14 @@
 package logutils
 
 import (
+	"bytes"
 	"fmt"
 	"gorunner/config"
 	"io"
 	"os"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 )
 
@@ -27,7 +29,14 @@ func initLogger() {
 	}
 
 	f := param.Global.LogFile
-	if strings.HasSuffix(f, ".log") {
+	if strings.Contains(f, "{{") {
+		s, err := replace(f, Args{Now: time.Now().Format("2006-01-02")})
+		if err != nil {
+			fmt.Errorf("erreur: %v", err)
+			os.Exit(1)
+		}
+		f = s
+	} else if strings.HasSuffix(f, ".log") {
 		f = strings.TrimSuffix(f, ".log")
 		f = f + "." + time.Now().Format("2006-01-02") + ".log"
 	}
@@ -38,6 +47,23 @@ func initLogger() {
 		os.Exit(1)
 	}
 	outputWriter = io.MultiWriter(os.Stdout, logFile)
+}
+
+type Args struct {
+	Now string
+}
+
+func replace(tmplt string, args Args) (string, error) {
+	var buf bytes.Buffer
+	t, err := template.New("tmp").Parse(tmplt)
+	if err != nil {
+		return "", err // as error?!
+	}
+	err = t.Execute(&buf, args)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func fermeture() {
