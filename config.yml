@@ -20,5 +20,9 @@ tasks:
     enable: true
     encoding: Windows1252
     #encoding: ISO88591
+  -
+    name: "commande 4"
+    commands: [ "cmd", "-/C", "echo", "La date est {{ .Now }}"]
+    enable: true
 
 

@@ -10,6 +10,7 @@ import (
 type Task struct {
 	Name     string
 	Run      string
+	Commands []string
 	Encoding string
 	Enable   bool
 }

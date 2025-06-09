@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
 )
 
@@ -82,18 +84,43 @@ func ecrireEtat(param config.Parametres, etat string) error {
 
 func run(task config.Task) error {
 
-	run := task.Run
-	stringSlice := strings.Split(run, " ")
+	var command string
+	var args []string
 
-	command := stringSlice[0]
-	args := stringSlice[1:]
+	if task.Run != "" {
+		run := task.Run
+		stringSlice := strings.Split(run, " ")
+
+		command = stringSlice[0]
+		args = stringSlice[1:]
+	} else {
+		command = task.Commands[0]
+		args = task.Commands[1:]
+	}
+
+	var args2 []string
+
+	argsTemplate := Args{Now: time.Now().Format("2006-01-02_15-04-05")}
+
+	for _, arg := range args {
+		if strings.Contains(arg, "{{") {
+			arg, err := replace(arg, argsTemplate)
+			if err != nil {
+				return err
+			}
+			args2 = append(args2, arg)
+		} else {
+			args2 = append(args2, arg)
+		}
+
+	}
 
 	logutils.Printf("Début de la tache %s", task.Name)
 
 	debut := time.Now()
 
 	// 3. Préparer la commande à exécuter
-	cmd := exec.Command(command, args...)
+	cmd := exec.Command(command, args2...)
 
 	// 4. Obtenir les Pipes pour Stdout et Stderr
 	// Nous allons lire la sortie de la commande via ces pipes
@@ -209,4 +236,21 @@ func decodeISO88591ToUTF8(s string) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+type Args struct {
+	Now string
+}
+
+func replace(tmplt string, args Args) (string, error) {
+	var buf bytes.Buffer
+	t, err := template.New("tmp").Parse(tmplt)
+	if err != nil {
+		return "", err // as error?!
+	}
+	err = t.Execute(&buf, args)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
