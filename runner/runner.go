@@ -23,6 +23,9 @@ const EtatEnCour = "en_cours"
 const EtatFin = "fin"
 
 func Run(param config.Parametres) {
+
+	debut := time.Now()
+
 	if param.Global.NoSleep {
 		go noSleep.PasSleep()
 	}
@@ -64,6 +67,9 @@ func Run(param config.Parametres) {
 		}
 
 	}
+
+	diff := time.Now().Sub(debut)
+	logutils.Printf("Duree totale de toutes les taches : %v", diff)
 
 	err = ecrireEtat(param, EtatFin)
 	if err != nil {
