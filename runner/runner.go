@@ -17,15 +17,15 @@ import (
 	"time"
 )
 
-var ETAT_EN_COUR = "en_cours"
-var ETAT_FIN = "fin"
+const EtatEnCour = "en_cours"
+const EtatFin = "fin"
 
 func Run(param config.Parametres) {
 	if param.Global.NoSleep {
 		go noSleep.PasSleep()
 	}
 
-	err := ecrireEtat(param, ETAT_EN_COUR)
+	err := ecrireEtat(param, EtatEnCour)
 	if err != nil {
 		return
 	}
@@ -63,7 +63,7 @@ func Run(param config.Parametres) {
 
 	}
 
-	err = ecrireEtat(param, ETAT_FIN)
+	err = ecrireEtat(param, EtatFin)
 	if err != nil {
 		return
 	}
