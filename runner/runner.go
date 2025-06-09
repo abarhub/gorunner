@@ -30,7 +30,7 @@ func Run(param config.Parametres) {
 		go noSleep.PasSleep()
 	}
 
-	err := ecrireEtat(param, ETAT_FIN)
+	err := ecrireEtat(param, ETAT_EN_COUR)
 	if err != nil {
 		return
 	}
