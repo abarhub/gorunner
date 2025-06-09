@@ -144,7 +144,7 @@ func run(task config.Task) error {
 	logutils.Printf("Commande terminée, status code : %d, durée : %v", statusCode, diff)
 
 	logutils.Printf("Fin de la tache %s", task.Name)
-	return nil
+	return err
 }
 
 func processOutput(reader io.Reader, prefix string, encoding string) {
