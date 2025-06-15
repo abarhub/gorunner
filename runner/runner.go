@@ -171,13 +171,26 @@ func run(task config.Task) error {
 				statusCode = status.ExitStatus()
 			}
 		}
-		logutils.Errorf("Erreur lors de l'exécution de la commande : %v", err)
+		if len(task.ExitCodeOk) > 0 && contains(task.ExitCodeOk, statusCode) {
+			err = nil
+		} else {
+			logutils.Errorf("Erreur lors de l'exécution de la commande : %v", err)
+		}
 	}
 
 	logutils.Printf("Commande terminée, status code : %d, durée : %v", statusCode, diff)
 
 	logutils.Printf("Fin de la tache %s", task.Name)
 	return err
+}
+
+func contains(list []int, code int) bool {
+	for _, element := range list {
+		if element == code {
+			return true
+		}
+	}
+	return false
 }
 
 func processOutput(reader io.Reader, prefix string, encoding string) {

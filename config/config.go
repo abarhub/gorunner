@@ -8,11 +8,12 @@ import (
 )
 
 type Task struct {
-	Name     string
-	Run      string
-	Commands []string
-	Encoding string
-	Enable   bool
+	Name       string
+	Run        string
+	Commands   []string
+	Encoding   string
+	Enable     bool
+	ExitCodeOk []int `yaml:"exit_code_ok"`
 }
 
 type Parametres struct {
