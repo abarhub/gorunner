@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"golang.org/x/text/encoding/charmap"
-	"golang.org/x/text/transform"
 	"gorunner/config"
 	"gorunner/logutils"
 	"gorunner/noSleep"
@@ -17,6 +15,9 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 )
 
 const EtatEnCour = "en_cours"
@@ -28,6 +29,7 @@ func Run(param config.Parametres) {
 
 	if param.Global.NoSleep {
 		go noSleep.PasSleep()
+		defer noSleep.FinNoSleep()
 	}
 
 	err := ecrireEtat(param, EtatEnCour)
