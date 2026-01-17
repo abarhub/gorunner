@@ -32,6 +32,12 @@ func Run(param config.Parametres) {
 		defer noSleep.FinNoSleep()
 	}
 
+	if param.Global.AttendDebutSecondes > 0 {
+		logutils.Printf("Attente %d secondes ...", param.Global.AttendDebutSecondes)
+		time.Sleep(time.Duration(param.Global.AttendDebutSecondes) * time.Second)
+		logutils.Printf("Attente terminée")
+	}
+
 	err := ecrireEtat(param, EtatEnCour)
 	if err != nil {
 		return

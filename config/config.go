@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/goccy/go-yaml"
 	"os"
 	"sync"
+
+	"github.com/goccy/go-yaml"
 )
 
 type Task struct {
@@ -18,9 +19,10 @@ type Task struct {
 
 type Parametres struct {
 	Global struct {
-		NoSleep  bool   `yaml:"no_sleep"`
-		LogFile  string `yaml:"log_file"`
-		EtatFile string `yaml:"etat_file"`
+		NoSleep             bool   `yaml:"no_sleep"`
+		LogFile             string `yaml:"log_file"`
+		EtatFile            string `yaml:"etat_file"`
+		AttendDebutSecondes int    `yaml:"attente_debut_secondes"`
 	}
 	Tasks []Task
 }
