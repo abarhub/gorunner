@@ -1,8 +1,8 @@
 module gorunner
 
-go 1.24
+go 1.26.0
 
 require (
-	github.com/goccy/go-yaml v1.18.0
-	golang.org/x/text v0.26.0
+	github.com/goccy/go-yaml v1.19.2
+	golang.org/x/text v0.34.0
 )
