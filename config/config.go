@@ -23,6 +23,9 @@ type Parametres struct {
 		LogFile             string `yaml:"log_file"`
 		EtatFile            string `yaml:"etat_file"`
 		AttendDebutSecondes int    `yaml:"attente_debut_secondes"`
+		TelegramToken       string `yaml:"telegram_token"`
+		TelegrameBotToken   string `yaml:"telegrame_bot_token"`
+		TelegramUrl         string `yaml:"telegram_url"`
 	}
 	Tasks []Task
 }

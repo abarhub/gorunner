@@ -3,12 +3,15 @@ package runner
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"gorunner/config"
 	"gorunner/logutils"
 	"gorunner/noSleep"
 	"gorunner/stat"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -63,16 +66,21 @@ func Run(param config.Parametres) {
 			}
 			stat2.Put(task.Name, tache)
 		}
+
 		logutils.Printf("Résumé :")
+		messageTelegrame := "Résumé :"
 		for _, taskName := range stat2.Keys() {
 			task := stat2.Get(taskName)
 			if task.Execute {
 				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, task.Duree, task.Erreur)
+				messageTelegrame += fmt.Sprintf("\nTache %s : duree=%v, erreur=%v.", taskName, task.Duree, task.Erreur)
 			} else {
 				logutils.Printf("Tache %s : non executé", taskName)
+				messageTelegrame += fmt.Sprintf("\nTache %s : non executé.", taskName)
 			}
 
 		}
+		envoieTelegrame(param, messageTelegrame)
 
 	}
 
@@ -83,6 +91,27 @@ func Run(param config.Parametres) {
 	if err != nil {
 		return
 	}
+}
+
+func envoieTelegrame(param config.Parametres, message string) {
+	if len(param.Global.TelegramUrl) > 0 {
+
+		url := fmt.Sprintf("%sbot%s/sendMessage", param.Global.TelegramUrl, param.Global.TelegramToken)
+		values := map[string]string{"chat_id": param.Global.TelegrameBotToken, "text": message, "parse_mode": "HTML"}
+
+		jsonValue, _ := json.Marshal(values)
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+
+		if err != nil {
+			logutils.Printf("Erreur pour envoyer le message à telegrame %s", err.Error())
+		} else {
+			logutils.Printf("Message envoyé à telegram avec succes (%d)", resp.StatusCode)
+		}
+	} else {
+		logutils.Printf("Pas d'envoi vers telegrame")
+	}
+
 }
 
 func ecrireEtat(param config.Parametres, etat string) error {
