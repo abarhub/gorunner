@@ -72,8 +72,8 @@ func Run(param config.Parametres) {
 		for _, taskName := range stat2.Keys() {
 			task := stat2.Get(taskName)
 			if task.Execute {
-				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, task.Duree, task.Erreur)
-				messageTelegrame += fmt.Sprintf("\nTache %s : duree=%v, erreur=%v.", taskName, task.Duree, task.Erreur)
+				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, formateDuration(task.Duree), task.Erreur)
+				messageTelegrame += fmt.Sprintf("\nTache %s : duree=%v, erreur=%v.", taskName, formateDuration(task.Duree), task.Erreur)
 			} else {
 				logutils.Printf("Tache %s : non executé", taskName)
 				messageTelegrame += fmt.Sprintf("\nTache %s : non executé.", taskName)
@@ -85,7 +85,7 @@ func Run(param config.Parametres) {
 	}
 
 	diff := time.Now().Sub(debut)
-	logutils.Printf("Duree totale de toutes les taches : %v", diff)
+	logutils.Printf("Duree totale de toutes les taches : %v", formateDuration(diff))
 
 	err = ecrireEtat(param, EtatFin)
 	if err != nil {
@@ -112,6 +112,14 @@ func envoieTelegrame(param config.Parametres, message string) {
 		logutils.Printf("Pas d'envoi vers telegrame")
 	}
 
+}
+
+func formateDuration(duration time.Duration) string {
+	if duration.Milliseconds() > 1 {
+		return duration.Truncate(10 * time.Millisecond).String()
+	} else {
+		return duration.String()
+	}
 }
 
 func ecrireEtat(param config.Parametres, etat string) error {
