@@ -5,3 +5,5 @@ out/
 logs/
 /etat_backup.txt
 /justfile
+
+.env

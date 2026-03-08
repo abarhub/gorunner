@@ -8,6 +8,8 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+import "github.com/joho/godotenv"
+
 type Task struct {
 	Name       string
 	Run        string
@@ -35,6 +37,11 @@ var once sync.Once
 
 func initConfig() {
 
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	configFile := "config.yml"
 
 	if len(os.Args) > 1 {
@@ -49,8 +56,10 @@ func initConfig() {
 		panic(err)
 	}
 
+	expanded := os.ExpandEnv(string(data))
+
 	var param2 Parametres
-	if err := yaml.Unmarshal(data, &param2); err != nil {
+	if err := yaml.Unmarshal([]byte(expanded), &param2); err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
 	} else {

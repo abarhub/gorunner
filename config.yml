@@ -5,9 +5,9 @@ global:
   log_file: logs/program_output.{{ .Now }}.log
   etat_file : etat_backup.txt
   #attente_debut_secondes: 10
-  telegram_token:
-  telegrame_bot_token:
-  telegram_url:
+  telegram_token: ${TELEGRAM_TOKEN}
+  telegrame_bot_token: ${TELEGRAME_BOT_TOKEN}
+  telegram_url: ${TELEGRAM_URL}
 
 tasks:
   -
