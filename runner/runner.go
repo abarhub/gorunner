@@ -96,7 +96,7 @@ func Run(param config.Parametres) {
 
 func formateDurationTelegrame(duree time.Duration) string {
 	s := formateDuration(duree)
-	if duree > time.Second {
+	if duree > time.Minute {
 		return "<u><strong>" + s + "</strong></u>"
 	}
 

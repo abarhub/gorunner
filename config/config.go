@@ -1,14 +1,15 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/goccy/go-yaml"
+	"github.com/joho/godotenv"
 )
-
-import "github.com/joho/godotenv"
 
 type Task struct {
 	Name       string
@@ -35,12 +36,54 @@ type Parametres struct {
 var param Parametres
 var once sync.Once
 
-func initConfig() {
+const ENV_FILE = ".env"
 
-	err := godotenv.Load()
+func trouveFichierEnv() string {
+	ex, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
+	exPath := filepath.Dir(ex)
+
+	envFile := filepath.Join(exPath, ENV_FILE)
+
+	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
+		return envFile
+	}
+
+	path, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	envFile = filepath.Join(path, ENV_FILE)
+
+	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
+		return envFile
+	}
+
+	return ""
+}
+
+func chargeEnv() {
+
+	envFile := trouveFichierEnv()
+
+	if len(envFile) > 0 {
+		fmt.Println("chargement du fichier:", envFile)
+		err := godotenv.Load(envFile)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		fmt.Println("pas de fichier .env")
+	}
+
+}
+
+func initConfig() {
+
+	chargeEnv()
 
 	configFile := "config.yml"
 
