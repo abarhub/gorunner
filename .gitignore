@@ -7,3 +7,7 @@ logs/
 /justfile
 
 .env
+
+sonar-project.properties
+coverage.out
+
