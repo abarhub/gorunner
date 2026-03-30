@@ -68,21 +68,25 @@ func Run(param config.Parametres) {
 		}
 
 		logutils.Printf("Résumé :")
-		messageTelegrame := "Résumé :"
-		for i, taskName := range stat2.Keys() {
-			no := i + 1
+		var dureeTotale time.Duration = 0
+		var nbErreurs = 0
+		var nbTaches = 0
+		for _, taskName := range stat2.Keys() {
 			task := stat2.Get(taskName)
 			if task.Execute {
 				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, formateDuration(task.Duree), task.Erreur)
-				messageTelegrame += fmt.Sprintf("\nTache %d : duree=%v, erreur=%v.", no, formateDurationTelegrame(task.Duree), formatageBool(task.Erreur))
+				dureeTotale += task.Duree
+				nbTaches++
+				if task.Erreur {
+					nbErreurs++
+				}
 			} else {
 				logutils.Printf("Tache %s : non executé", taskName)
-				messageTelegrame += fmt.Sprintf("\nTache %d : non executé.", no)
 			}
 
 		}
+		messageTelegrame := fmt.Sprintf("Nb taches=%d, duree totale=%v, nb erreur=%v.", nbTaches, formateDurationTelegrame(dureeTotale), nbErreurs)
 		envoieTelegrame(param, messageTelegrame)
-
 	}
 
 	diff := time.Now().Sub(debut)
@@ -101,14 +105,6 @@ func formateDurationTelegrame(duree time.Duration) string {
 	}
 
 	return s
-}
-
-func formatageBool(erreur bool) string {
-	if erreur {
-		return "<u><strong>true</strong></u>"
-	}
-
-	return "false"
 }
 
 func envoieTelegrame(param config.Parametres, message string) {
