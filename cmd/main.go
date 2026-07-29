@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorunner/config"
 	"gorunner/logutils"
+	"gorunner/metrics"
 	"gorunner/runner"
 	"time"
 )
@@ -14,6 +15,10 @@ func main() {
 	fmt.Printf("[%s] Démarrage du programme\n", timestamp)
 
 	param := config.GetConfig()
+
+	go func() {
+		metrics.Init(param)
+	}()
 
 	logutils.Printf("initialisation")
 

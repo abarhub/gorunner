@@ -16,6 +16,7 @@ var (
 	outputWriter io.Writer
 	once         sync.Once
 	logFile      *os.File
+	mdc          map[string]string
 )
 
 // initLogger initialise le writer partagé (stdout + fichier)
@@ -47,6 +48,7 @@ func initLogger() {
 		os.Exit(1)
 	}
 	outputWriter = io.MultiWriter(os.Stdout, logFile)
+	mdc = make(map[string]string)
 }
 
 type Args struct {
@@ -82,9 +84,27 @@ func Printf(format string, args ...interface{}) {
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)
-	final := fmt.Sprintf("[%s] %s\n", timestamp, msg)
+	var msg3 = ""
+	if len(mdc) > 0 {
+		var msg2 strings.Builder
+		for key, value := range mdc {
+			if msg2.Len() > 0 {
+				msg2.WriteString(",")
+			}
+			msg2.WriteString(key + "=" + value)
+		}
+		msg3 = msg2.String()
+		if len(msg3) > 0 {
+			msg3 = "[" + msg3 + "]"
+		}
+	}
+	final := fmt.Sprintf("[%s] %s %s\n", timestamp, msg3, msg)
 
-	fmt.Fprint(outputWriter, final)
+	_, err := fmt.Fprint(outputWriter, final)
+	if err != nil {
+		Printf("Erreur de formatage: %v", err)
+		return
+	}
 }
 
 func Errorf(format string, args ...interface{}) {
@@ -93,4 +113,12 @@ func Errorf(format string, args ...interface{}) {
 
 func CloseLog() {
 	once.Do(fermeture)
+}
+
+func AddMdc(key, value string) {
+	mdc[key] = value
+}
+
+func DeleteMdc(key string) {
+	delete(mdc, key)
 }

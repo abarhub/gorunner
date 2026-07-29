@@ -25,6 +25,8 @@ import (
 
 const EtatEnCour = "en_cours"
 const EtatFin = "fin"
+const MDCTache = "tache"
+const RESUME = "resume"
 
 func Run(param config.Parametres) {
 
@@ -50,6 +52,7 @@ func Run(param config.Parametres) {
 		stat2 := stat.CreateStat()
 		for _, task := range param.Tasks {
 			tache := stat.CreateExecutionTache()
+			logutils.AddMdc(MDCTache, task.NameId)
 			if task.Enable {
 				tache.Execute = true
 				debut := time.Now()
@@ -64,9 +67,11 @@ func Run(param config.Parametres) {
 				tache.Execute = false
 				logutils.Printf("Tache %s ignore", task.Name)
 			}
+			logutils.DeleteMdc(MDCTache)
 			stat2.Put(task.Name, tache)
 		}
 
+		logutils.AddMdc(MDCTache, RESUME)
 		logutils.Printf("Résumé :")
 		var dureeTotale time.Duration = 0
 		var nbErreurs = 0
@@ -91,6 +96,7 @@ func Run(param config.Parametres) {
 
 	diff := time.Now().Sub(debut)
 	logutils.Printf("Duree totale de toutes les taches : %v", formateDuration(diff))
+	logutils.DeleteMdc(MDCTache)
 
 	err = ecrireEtat(param, EtatFin)
 	if err != nil {
@@ -108,7 +114,7 @@ func formateDurationTelegrame(duree time.Duration) string {
 }
 
 func envoieTelegrame(param config.Parametres, message string) {
-	if len(param.Global.TelegramUrl) > 0 {
+	if param.Global.TelegramActive && len(param.Global.TelegramUrl) > 0 {
 
 		url := fmt.Sprintf("%sbot%s/sendMessage", param.Global.TelegramUrl, param.Global.TelegramToken)
 		values := map[string]string{"chat_id": param.Global.TelegrameBotToken, "text": message, "parse_mode": "HTML"}

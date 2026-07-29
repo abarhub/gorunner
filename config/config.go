@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/goccy/go-yaml"
@@ -13,6 +14,7 @@ import (
 
 type Task struct {
 	Name       string
+	NameId     string
 	Run        string
 	Commands   []string
 	Encoding   string
@@ -29,6 +31,9 @@ type Parametres struct {
 		TelegramToken       string `yaml:"telegram_token"`
 		TelegrameBotToken   string `yaml:"telegrame_bot_token"`
 		TelegramUrl         string `yaml:"telegram_url"`
+		TelegramActive      bool   `yaml:"telegram_active"`
+		PrometheusActive    bool   `yaml:"prometheus_active"`
+		UrlMetrics          string `yaml:"metrics_url"`
 	}
 	Tasks []Task
 }
@@ -108,8 +113,9 @@ func initConfig() {
 	} else {
 		for i, t := range param2.Tasks {
 			if t.Name == "" {
-				t.Name = fmt.Sprintf("task-%d", i)
+				param2.Tasks[i].Name = fmt.Sprintf("task-%d", i)
 			}
+			param2.Tasks[i].NameId = normalizeASCII(t.Name)
 		}
 		param = param2
 	}
@@ -119,4 +125,23 @@ func GetConfig() Parametres {
 	once.Do(initConfig)
 
 	return param
+}
+
+func normalizeASCII(s string) string {
+	var b strings.Builder
+
+	for _, r := range s {
+		switch {
+		case 'A' <= r && r <= 'Z':
+			b.WriteRune(r + ('a' - 'A'))
+		case 'a' <= r && r <= 'z':
+			b.WriteRune(r)
+		case '0' <= r && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+	}
+
+	return b.String()
 }

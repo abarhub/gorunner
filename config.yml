@@ -8,6 +8,9 @@ global:
   telegram_token: ${TELEGRAM_TOKEN}
   telegrame_bot_token: ${TELEGRAME_BOT_TOKEN}
   telegram_url: ${TELEGRAM_URL}
+  telegram_active: false
+  prometheus_active: true
+  metrics_url: ":2112"
 
 tasks:
   -
