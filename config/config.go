@@ -24,16 +24,18 @@ type Task struct {
 
 type Parametres struct {
 	Global struct {
-		NoSleep             bool   `yaml:"no_sleep"`
-		LogFile             string `yaml:"log_file"`
-		EtatFile            string `yaml:"etat_file"`
-		AttendDebutSecondes int    `yaml:"attente_debut_secondes"`
-		TelegramToken       string `yaml:"telegram_token"`
-		TelegrameBotToken   string `yaml:"telegrame_bot_token"`
-		TelegramUrl         string `yaml:"telegram_url"`
-		TelegramActive      bool   `yaml:"telegram_active"`
-		PrometheusActive    bool   `yaml:"prometheus_active"`
-		UrlMetrics          string `yaml:"metrics_url"`
+		NoSleep             bool      `yaml:"no_sleep"`
+		LogFile             string    `yaml:"log_file"`
+		EtatFile            string    `yaml:"etat_file"`
+		AttendDebutSecondes int       `yaml:"attente_debut_secondes"`
+		AttendFinSecondes   int       `yaml:"attente_fin_secondes"`
+		TelegramToken       string    `yaml:"telegram_token"`
+		TelegrameBotToken   string    `yaml:"telegrame_bot_token"`
+		TelegramUrl         string    `yaml:"telegram_url"`
+		TelegramActive      bool      `yaml:"telegram_active"`
+		PrometheusActive    bool      `yaml:"prometheus_active"`
+		UrlMetrics          string    `yaml:"metrics_url"`
+		PrometheusBuckets   []float64 `yaml:"prometheus_buckets"`
 	}
 	Tasks []Task
 }

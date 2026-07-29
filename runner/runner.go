@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gorunner/config"
 	"gorunner/logutils"
+	"gorunner/metrics"
 	"gorunner/noSleep"
 	"gorunner/stat"
 	"io"
@@ -55,14 +56,15 @@ func Run(param config.Parametres) {
 			logutils.AddMdc(MDCTache, task.NameId)
 			if task.Enable {
 				tache.Execute = true
-				debut := time.Now()
+				debut2 := time.Now()
 				err := run(task)
-				diff := time.Now().Sub(debut)
+				diff := time.Now().Sub(debut2)
 				tache.Duree = diff
 				if err != nil {
 					tache.Erreur = true
 					logutils.Printf("Erreur pour la tache %s : %v", task.Name, err)
 				}
+				metrics.AjoutMetrics(task.NameId, !tache.Erreur, diff.Seconds())
 			} else {
 				tache.Execute = false
 				logutils.Printf("Tache %s ignore", task.Name)
@@ -94,8 +96,15 @@ func Run(param config.Parametres) {
 		envoieTelegrame(param, messageTelegrame)
 	}
 
+	if param.Global.AttendFinSecondes > 0 {
+		logutils.Printf("Attente %d secondes ...", param.Global.AttendFinSecondes)
+		time.Sleep(time.Duration(param.Global.AttendFinSecondes) * time.Second)
+		logutils.Printf("Attente terminée")
+	}
+
 	diff := time.Now().Sub(debut)
 	logutils.Printf("Duree totale de toutes les taches : %v", formateDuration(diff))
+	metrics.AjoutMetricsDuree(RESUME, diff.Seconds())
 	logutils.DeleteMdc(MDCTache)
 
 	err = ecrireEtat(param, EtatFin)

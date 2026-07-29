@@ -5,12 +5,14 @@ global:
   log_file: logs/program_output.{{ .Now }}.log
   etat_file : etat_backup.txt
   #attente_debut_secondes: 10
+  #attente_fin_secondes: 15
   telegram_token: ${TELEGRAM_TOKEN}
   telegrame_bot_token: ${TELEGRAME_BOT_TOKEN}
   telegram_url: ${TELEGRAM_URL}
   telegram_active: false
-  prometheus_active: true
+  prometheus_active: false
   metrics_url: ":2112"
+  prometheus_buckets: [ 60, 120, 300, 600, 900, 1200, 1500, 1800, 2400, 3000, 3600]
 
 tasks:
   -
