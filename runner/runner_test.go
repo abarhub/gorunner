@@ -22,7 +22,6 @@ func Test_processOutput(t *testing.T) {
 		name string
 		args args
 	}{
-		// TODO: Add test cases.
 		{"test1", args{reader: strings.NewReader("Bonjour, Alice"), prefix: "", encoding: "UTF-8", resultat: "Bonjour, Alice\n"}},
 		{"test2", args{reader: strings.NewReader("Test 1,2,3 XXX"), prefix: "", encoding: "UTF-8", resultat: "Test 1,2,3 XXX\n"}},
 		{"test3", args{reader: strings.NewReader("ABC" + strings.Repeat("X", 5000)), prefix: "",
