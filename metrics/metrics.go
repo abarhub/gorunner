@@ -16,11 +16,11 @@ var taskEchec *prometheus.CounterVec
 var taskDuration *prometheus.HistogramVec
 var prometheusActive bool
 
-func Init(param config.Parametres) {
+func Init(param config.Parametres, logger *logutils.Logger) {
 
 	if param.Global.PrometheusActive {
 
-		logutils.Printf("Prometheus active")
+		logger.Printf("Prometheus active")
 
 		http.Handle("/metrics", promhttp.Handler())
 		var url = ":2112"
@@ -30,7 +30,7 @@ func Init(param config.Parametres) {
 		go func() {
 			err := http.ListenAndServe(url, nil)
 			if err != nil {
-				logutils.Printf("Erreur pour initialiser le serveur web: %v", err)
+				logger.Printf("Erreur pour initialiser le serveur web: %v", err)
 				return
 			}
 		}()
@@ -55,11 +55,6 @@ func Init(param config.Parametres) {
 				Name:    "gorunner_task_duration_seconds",
 				Help:    "Durée des tâches longues",
 				Buckets: param.Global.PrometheusBuckets,
-				/*[]float64{
-					60, 120, 300, 600, 900, 1200, 1500, 1800, 2400, 3000, 3600,
-					// 1min, 2min, 5min, 10min, 15min, 20min, 25min, 30min, 40min, 50min, 1h
-				},*/
-
 			},
 			[]string{TACHE},
 		)
@@ -69,12 +64,12 @@ func Init(param config.Parametres) {
 		prometheus.MustRegister(taskDuration)
 
 	} else {
-		logutils.Printf("Prometheus désactive")
+		logger.Printf("Prometheus désactive")
 	}
 	prometheusActive = param.Global.PrometheusActive
 }
 
-func AjoutMetrics(nom string, succes bool, duree float64) {
+func AjoutMetrics(nom string, succes bool, duree float64, logger *logutils.Logger) {
 
 	if prometheusActive {
 		if succes {
@@ -84,13 +79,13 @@ func AjoutMetrics(nom string, succes bool, duree float64) {
 		}
 
 		taskDuration.WithLabelValues(nom).Observe(duree)
-		logutils.Printf("prometheus envoi duree %s: %v", nom, duree)
+		logger.Printf("prometheus envoi duree %s: %v", nom, duree)
 	}
 }
 
-func AjoutMetricsDuree(nom string, duree float64) {
+func AjoutMetricsDuree(nom string, duree float64, logger *logutils.Logger) {
 	if prometheusActive {
 		taskDuration.WithLabelValues(nom).Observe(duree)
-		logutils.Printf("prometheus envoi duree %s: %v", nom, duree)
+		logger.Printf("prometheus envoi duree %s: %v", nom, duree)
 	}
 }

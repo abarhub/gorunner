@@ -68,7 +68,7 @@ func Test_processOutput(t *testing.T) {
 				t.Fatalf("Erreur lors de la création du pipe : %v", err)
 			}
 
-			processOutput(tt.args.reader, tt.args.prefix, tt.args.encoding)
+			processOutput(tt.args.reader, tt.args.prefix, tt.args.encoding, nil)
 
 			_ = w.Close()
 			os.Stdout = oldStdout

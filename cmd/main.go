@@ -16,17 +16,19 @@ func main() {
 
 	param := config.GetConfig()
 
+	logger := logutils.New(param)
+
 	go func() {
-		metrics.Init(param)
+		metrics.Init(param, logger)
 	}()
 
-	logutils.Printf("initialisation")
+	logger.Printf("initialisation")
 
-	defer logutils.CloseLog()
+	defer logger.Fermeture()
 
-	logutils.Printf("NoSleep: %v", param.Global.NoSleep)
+	logger.Printf("NoSleep: %v", param.Global.NoSleep)
 
-	runner.Run(param)
+	runner.Run(param, logger)
 
-	logutils.Printf("fin de l'execution des taches")
+	logger.Printf("fin de l'execution des taches")
 }

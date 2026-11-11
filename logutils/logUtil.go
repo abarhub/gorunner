@@ -12,17 +12,14 @@ import (
 	"time"
 )
 
-var (
-	outputWriter io.Writer
-	once         sync.Once
-	logFile      *os.File
-	mdc          map[string]string
-)
+type Logger struct {
+	out     io.Writer
+	mu      sync.Mutex
+	mdc     map[string]string
+	logFile *os.File
+}
 
-// initLogger initialise le writer partagé (stdout + fichier)
-func initLogger() {
-
-	param := config.GetConfig()
+func New(param config.Parametres) *Logger {
 
 	if param.Global.LogFile == "" {
 		fmt.Println("logFile is empty")
@@ -47,8 +44,49 @@ func initLogger() {
 		fmt.Fprintf(os.Stderr, "Erreur ouverture fichier log: %v\n", err)
 		os.Exit(1)
 	}
-	outputWriter = io.MultiWriter(os.Stdout, logFile)
-	mdc = make(map[string]string)
+	outputWriter := io.MultiWriter(os.Stdout, logFile)
+	mdc := make(map[string]string)
+
+	return &Logger{out: outputWriter, mdc: mdc, logFile: logFile}
+}
+
+func (l *Logger) Printf(format string, args ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	msg := fmt.Sprintf(format, args...)
+	var msg3 = ""
+	if len(l.mdc) > 0 {
+		var msg2 strings.Builder
+		for key, value := range l.mdc {
+			if msg2.Len() > 0 {
+				msg2.WriteString(",")
+			}
+			msg2.WriteString(key + "=" + value)
+		}
+		msg3 = msg2.String()
+		if len(msg3) > 0 {
+			msg3 = "[" + msg3 + "]"
+		}
+	}
+	final := fmt.Sprintf("[%s] %s %s\n", timestamp, msg3, msg)
+
+	_, err := fmt.Fprint(l.out, final)
+	if err != nil {
+		l.Errorf("Erreur de formatage: %v", err)
+		return
+	}
+}
+
+func (l *Logger) Fermeture() {
+	if l.logFile != nil {
+
+		err := l.logFile.Close()
+		if err != nil {
+			return
+		}
+	}
 }
 
 type Args struct {
@@ -68,57 +106,18 @@ func replace(tmplt string, args Args) (string, error) {
 	return buf.String(), nil
 }
 
-func fermeture() {
-	if logFile != nil {
-
-		err := logFile.Close()
-		if err != nil {
-			return
-		}
-	}
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.Printf("ERROR: "+format, args...)
 }
 
-// Printf écrit un message horodaté dans la console et le fichier
-func Printf(format string, args ...interface{}) {
-	once.Do(initLogger) // S'assure que l'init est faite une seule fois
-
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	msg := fmt.Sprintf(format, args...)
-	var msg3 = ""
-	if len(mdc) > 0 {
-		var msg2 strings.Builder
-		for key, value := range mdc {
-			if msg2.Len() > 0 {
-				msg2.WriteString(",")
-			}
-			msg2.WriteString(key + "=" + value)
-		}
-		msg3 = msg2.String()
-		if len(msg3) > 0 {
-			msg3 = "[" + msg3 + "]"
-		}
-	}
-	final := fmt.Sprintf("[%s] %s %s\n", timestamp, msg3, msg)
-
-	_, err := fmt.Fprint(outputWriter, final)
-	if err != nil {
-		Printf("Erreur de formatage: %v", err)
-		return
-	}
+func (l *Logger) AddMdc(key, value string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.mdc[key] = value
 }
 
-func Errorf(format string, args ...interface{}) {
-	Printf("ERROR: "+format, args...)
-}
-
-func CloseLog() {
-	once.Do(fermeture)
-}
-
-func AddMdc(key, value string) {
-	mdc[key] = value
-}
-
-func DeleteMdc(key string) {
-	delete(mdc, key)
+func (l *Logger) DeleteMdc(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.mdc, key)
 }

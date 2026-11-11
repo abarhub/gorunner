@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"syscall"
 	"text/template"
@@ -29,22 +30,22 @@ const EtatFin = "fin"
 const MDCTache = "tache"
 const RESUME = "resume"
 
-func Run(param config.Parametres) {
+func Run(param config.Parametres, logger *logutils.Logger) {
 
 	debut := time.Now()
 
 	if param.Global.NoSleep {
-		go noSleep.PasSleep()
+		go noSleep.PasSleep(logger)
 		defer noSleep.FinNoSleep()
 	}
 
 	if param.Global.AttendDebutSecondes > 0 {
-		logutils.Printf("Attente %d secondes ...", param.Global.AttendDebutSecondes)
+		logger.Printf("Attente %d secondes ...", param.Global.AttendDebutSecondes)
 		time.Sleep(time.Duration(param.Global.AttendDebutSecondes) * time.Second)
-		logutils.Printf("Attente terminée")
+		logger.Printf("Attente terminée")
 	}
 
-	err := ecrireEtat(param, EtatEnCour)
+	err := ecrireEtat(param, EtatEnCour, logger)
 	if err != nil {
 		return
 	}
@@ -53,61 +54,61 @@ func Run(param config.Parametres) {
 		stat2 := stat.CreateStat()
 		for _, task := range param.Tasks {
 			tache := stat.CreateExecutionTache()
-			logutils.AddMdc(MDCTache, task.NameId)
+			logger.AddMdc(MDCTache, task.NameId)
 			if task.Enable {
 				tache.Execute = true
 				debut2 := time.Now()
-				err := run(task)
+				err := run(task, logger)
 				diff := time.Now().Sub(debut2)
 				tache.Duree = diff
 				if err != nil {
 					tache.Erreur = true
-					logutils.Printf("Erreur pour la tache %s : %v", task.Name, err)
+					logger.Printf("Erreur pour la tache %s : %v", task.Name, err)
 				}
-				metrics.AjoutMetrics(task.NameId, !tache.Erreur, diff.Seconds())
+				metrics.AjoutMetrics(task.NameId, !tache.Erreur, diff.Seconds(), logger)
 			} else {
 				tache.Execute = false
-				logutils.Printf("Tache %s ignore", task.Name)
+				logger.Printf("Tache %s ignore", task.Name)
 			}
-			logutils.DeleteMdc(MDCTache)
+			logger.DeleteMdc(MDCTache)
 			stat2.Put(task.Name, tache)
 		}
 
-		logutils.AddMdc(MDCTache, RESUME)
-		logutils.Printf("Résumé :")
+		logger.AddMdc(MDCTache, RESUME)
+		logger.Printf("Résumé :")
 		var dureeTotale time.Duration = 0
 		var nbErreurs = 0
 		var nbTaches = 0
 		for _, taskName := range stat2.Keys() {
 			task := stat2.Get(taskName)
 			if task.Execute {
-				logutils.Printf("Tache %s : duree=%v, erreur=%v", taskName, formateDuration(task.Duree), task.Erreur)
+				logger.Printf("Tache %s : duree=%v, erreur=%v", taskName, formateDuration(task.Duree), task.Erreur)
 				dureeTotale += task.Duree
 				nbTaches++
 				if task.Erreur {
 					nbErreurs++
 				}
 			} else {
-				logutils.Printf("Tache %s : non executé", taskName)
+				logger.Printf("Tache %s : non executé", taskName)
 			}
 
 		}
 		messageTelegrame := fmt.Sprintf("Nb taches=%d, duree totale=%v, nb erreur=%v.", nbTaches, formateDurationTelegrame(dureeTotale), nbErreurs)
-		envoieTelegrame(param, messageTelegrame)
+		envoieTelegrame(param, messageTelegrame, logger)
 	}
 
 	if param.Global.AttendFinSecondes > 0 {
-		logutils.Printf("Attente %d secondes ...", param.Global.AttendFinSecondes)
+		logger.Printf("Attente %d secondes ...", param.Global.AttendFinSecondes)
 		time.Sleep(time.Duration(param.Global.AttendFinSecondes) * time.Second)
-		logutils.Printf("Attente terminée")
+		logger.Printf("Attente terminée")
 	}
 
 	diff := time.Now().Sub(debut)
-	logutils.Printf("Duree totale de toutes les taches : %v", formateDuration(diff))
-	metrics.AjoutMetricsDuree(RESUME, diff.Seconds())
-	logutils.DeleteMdc(MDCTache)
+	logger.Printf("Duree totale de toutes les taches : %v", formateDuration(diff))
+	metrics.AjoutMetricsDuree(RESUME, diff.Seconds(), logger)
+	logger.DeleteMdc(MDCTache)
 
-	err = ecrireEtat(param, EtatFin)
+	err = ecrireEtat(param, EtatFin, nil)
 	if err != nil {
 		return
 	}
@@ -122,7 +123,7 @@ func formateDurationTelegrame(duree time.Duration) string {
 	return s
 }
 
-func envoieTelegrame(param config.Parametres, message string) {
+func envoieTelegrame(param config.Parametres, message string, logger *logutils.Logger) {
 	if param.Global.TelegramActive && len(param.Global.TelegramUrl) > 0 {
 
 		url := fmt.Sprintf("%sbot%s/sendMessage", param.Global.TelegramUrl, param.Global.TelegramToken)
@@ -133,12 +134,12 @@ func envoieTelegrame(param config.Parametres, message string) {
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
 
 		if err != nil {
-			logutils.Printf("Erreur pour envoyer le message à telegrame %s", err.Error())
+			logger.Printf("Erreur pour envoyer le message à telegrame %s", err.Error())
 		} else {
-			logutils.Printf("Message envoyé à telegram avec succes (%d)", resp.StatusCode)
+			logger.Printf("Message envoyé à telegram avec succes (%d)", resp.StatusCode)
 		}
 	} else {
-		logutils.Printf("Pas d'envoi vers telegrame")
+		logger.Printf("Pas d'envoi vers telegrame")
 	}
 
 }
@@ -151,18 +152,18 @@ func formateDuration(duration time.Duration) string {
 	}
 }
 
-func ecrireEtat(param config.Parametres, etat string) error {
+func ecrireEtat(param config.Parametres, etat string, logger *logutils.Logger) error {
 	if param.Global.EtatFile != "" {
 		err := os.WriteFile(param.Global.EtatFile, []byte(etat), 0644)
 		if err != nil {
-			logutils.Errorf("Erreur pour écrire dans le fichier %s : %v", param.Global.EtatFile, err)
+			logger.Errorf("Erreur pour écrire dans le fichier %s : %v", param.Global.EtatFile, err)
 			return err
 		}
 	}
 	return nil
 }
 
-func run(task config.Task) error {
+func run(task config.Task, logger *logutils.Logger) error {
 
 	var command string
 	var args []string
@@ -195,7 +196,7 @@ func run(task config.Task) error {
 
 	}
 
-	logutils.Printf("Début de la tache %s", task.Name)
+	logger.Printf("Début de la tache %s", task.Name)
 
 	debut := time.Now()
 
@@ -206,22 +207,22 @@ func run(task config.Task) error {
 	// Nous allons lire la sortie de la commande via ces pipes
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		logutils.Errorf("Erreur lors de la création du pipe pour Stdout : %v", err)
+		logger.Errorf("Erreur lors de la création du pipe pour Stdout : %v", err)
 		return err
 	}
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		logutils.Errorf("Erreur lors de la création du pipe pour Stderr : %v", err)
+		logger.Errorf("Erreur lors de la création du pipe pour Stderr : %v", err)
 		return err
 	}
 
 	// 5. Démarrer la commande en arrière-plan
 	// Nous utilisons Start() au lieu de Run() car nous voulons lire les pipes
 	// pendant que la commande est en cours d'exécution.
-	logutils.Printf("Exécution de la commande : %s %s", command, strings.Join(args, " "))
+	logger.Printf("Exécution de la commande : %s %s", command, strings.Join(args, " "))
 	err = cmd.Start()
 	if err != nil {
-		logutils.Errorf("Erreur lors du démarrage de la commande : %v", err)
+		logger.Errorf("Erreur lors du démarrage de la commande : %v", err)
 		return err
 	}
 
@@ -230,8 +231,8 @@ func run(task config.Task) error {
 	// afin d'éviter un blocage si l'un des flux est rempli.
 
 	// Lancer les goroutines
-	go processOutput(stdoutPipe, "", task.Encoding)      // Pour la sortie standard
-	go processOutput(stderrPipe, "ERR: ", task.Encoding) // Pour la sortie d'erreur (on peut ajouter un préfixe distinctif)
+	go processOutput(stdoutPipe, "", task.Encoding, logger)      // Pour la sortie standard
+	go processOutput(stderrPipe, "ERR: ", task.Encoding, logger) // Pour la sortie d'erreur (on peut ajouter un préfixe distinctif)
 
 	// 7. Attendre que la commande se termine
 	err = cmd.Wait() // cmd.Wait() attend la fin de l'exécution et collecte le code de sortie
@@ -248,44 +249,21 @@ func run(task config.Task) error {
 		if len(task.ExitCodeOk) > 0 && contains(task.ExitCodeOk, statusCode) {
 			err = nil
 		} else {
-			logutils.Errorf("Erreur lors de l'exécution de la commande : %v", err)
+			logger.Errorf("Erreur lors de l'exécution de la commande : %v", err)
 		}
 	}
 
-	logutils.Printf("Commande terminée, status code : %d, durée : %v", statusCode, diff)
+	logger.Printf("Commande terminée, status code : %d, durée : %v", statusCode, diff)
 
-	logutils.Printf("Fin de la tache %s", task.Name)
+	logger.Printf("Fin de la tache %s", task.Name)
 	return err
 }
 
 func contains(list []int, code int) bool {
-	for _, element := range list {
-		if element == code {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, code)
 }
 
-func processOutput0(reader io.Reader, prefix string, encoding string) {
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if encoding != "" {
-			line = convertie(line, encoding)
-		}
-
-		// Afficher sur la console
-		logutils.Printf("%s%s", prefix, line)
-
-	}
-	if err := scanner.Err(); err != nil {
-		logutils.Printf("Erreur lors de la lecture du flux %s : %v", prefix, err)
-	}
-}
-
-func processOutput(reader io.Reader, prefix string, encoding string) {
+func processOutput(reader io.Reader, prefix string, encoding string, logger *logutils.Logger) {
 	reader2 := bufio.NewReader(reader)
 
 	// Un buffer pour reconstituer la ligne morceau par morceau en mémoire
@@ -303,7 +281,7 @@ func processOutput(reader io.Reader, prefix string, encoding string) {
 			if errors.Is(err, io.EOF) {
 				// S'il reste des données dans le buffer, c'est la dernière ligne du fichier (sans '\n')
 				if lineBuffer.Len() > 0 {
-					traiterLigne(lineBuffer.Bytes(), prefix, encoding)
+					traiterLigne(lineBuffer.Bytes(), prefix, encoding, logger)
 				}
 				break
 			}
@@ -325,7 +303,7 @@ func processOutput(reader io.Reader, prefix string, encoding string) {
 
 		// Si err == nil, cela signifie qu'on a atteint le '\n'.
 		// La ligne est entièrement reconstituée dans lineBuffer !
-		traiterLigne(lineBuffer.Bytes(), prefix, encoding)
+		traiterLigne(lineBuffer.Bytes(), prefix, encoding, logger)
 
 		// On réinitialise le buffer pour la ligne suivante
 		lineBuffer.Reset()
@@ -333,18 +311,18 @@ func processOutput(reader io.Reader, prefix string, encoding string) {
 
 }
 
-func traiterLigne(ligne []byte, prefix string, encoding string) {
+func traiterLigne(ligne []byte, prefix string, encoding string, logger *logutils.Logger) {
 	line := string(ligne)
 	if encoding != "" {
-		line = convertie(line, encoding)
+		line = convertie(line, encoding, logger)
 	}
 	line = strings.TrimRight(line, "\r\n")
 
 	// Afficher sur la console
-	logutils.Printf("%s%s", prefix, line)
+	logger.Printf("%s%s", prefix, line)
 }
 
-func convertie(line string, encoding string) string {
+func convertie(line string, encoding string, logger *logutils.Logger) string {
 	if encoding == "Windows1252" {
 		s, err := decodeWindows1252ToUTF8(line)
 		if err != nil {
@@ -362,7 +340,7 @@ func convertie(line string, encoding string) string {
 	} else if encoding == "UTF-8" {
 		return line
 	} else {
-		logutils.Errorf("Type d'encodage non géré: %s", encoding)
+		logger.Errorf("Type d'encodage non géré: %s", encoding)
 		return line
 	}
 
@@ -373,11 +351,11 @@ func decodeWindows1252ToUTF8(s string) (string, error) {
 	reader := strings.NewReader(s)
 	decoder := charmap.Windows1252.NewDecoder()
 	transformedReader := transform.NewReader(reader, decoder)
-	bytes, err := io.ReadAll(transformedReader)
+	readAll, err := io.ReadAll(transformedReader)
 	if err != nil {
 		return "", err
 	}
-	return string(bytes), nil
+	return string(readAll), nil
 }
 
 // decodeISO88591ToUTF8 convertit une chaîne encodée en ISO-8859-1 en UTF-8.
@@ -385,11 +363,11 @@ func decodeISO88591ToUTF8(s string) (string, error) {
 	reader := strings.NewReader(s)
 	decoder := charmap.ISO8859_1.NewDecoder() // Utilisation de charmap.ISO8859_1
 	transformedReader := transform.NewReader(reader, decoder)
-	bytes, err := io.ReadAll(transformedReader)
+	readAll, err := io.ReadAll(transformedReader)
 	if err != nil {
 		return "", err
 	}
-	return string(bytes), nil
+	return string(readAll), nil
 }
 
 type Args struct {

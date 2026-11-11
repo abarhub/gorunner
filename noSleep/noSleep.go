@@ -19,22 +19,22 @@ var pulseTime = 10 * time.Second
 
 var arret = make(chan bool)
 
-func PasSleep() {
+func PasSleep(logger *logutils.Logger) {
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
 	setThreadExecStateProc := kernel32.NewProc("SetThreadExecutionState")
 
 	pulse := time.NewTicker(pulseTime)
 
-	logutils.Printf("Starting keep alive poll... (silence)")
+	logger.Printf("Starting keep alive poll... (silence)")
 	for {
 		select {
 		case <-arret:
-			logutils.Printf("arret du no sleep ...")
-			changementEtatSleep(setThreadExecStateProc, false)
-			logutils.Printf("Fin du no sleep")
+			logger.Printf("arret du no sleep ...")
+			changementEtatSleep(setThreadExecStateProc, false, logger)
+			logger.Printf("Fin du no sleep")
 			return
 		case <-pulse.C:
-			changementEtatSleep(setThreadExecStateProc, true)
+			changementEtatSleep(setThreadExecStateProc, true, logger)
 		}
 	}
 }
@@ -43,7 +43,7 @@ func FinNoSleep() {
 	arret <- true
 }
 
-func changementEtatSleep(setThreadExecStateProc *syscall.LazyProc, veille bool) {
+func changementEtatSleep(setThreadExecStateProc *syscall.LazyProc, veille bool, logger *logutils.Logger) {
 	var flags uint32
 	if veille {
 		flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED
@@ -54,7 +54,7 @@ func changementEtatSleep(setThreadExecStateProc *syscall.LazyProc, veille bool) 
 	if err != nil {
 		s := fmt.Sprintf("%v", err)
 		if s != "L’opération a réussi." && s != "The operation completed successfully." {
-			logutils.Printf("Erreur pour changer l'état de veille: %v", err)
+			logger.Printf("Erreur pour changer l'état de veille: %v", err)
 		}
 	}
 }
