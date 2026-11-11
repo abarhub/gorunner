@@ -16,7 +16,7 @@ var taskEchec *prometheus.CounterVec
 var taskDuration *prometheus.HistogramVec
 var prometheusActive bool
 
-func Init(param config.Parametres, logger *logutils.Logger) {
+func Init(param *config.Parametres, logger *logutils.Logger) {
 
 	if param.Global.PrometheusActive {
 

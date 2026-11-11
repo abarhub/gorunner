@@ -19,7 +19,7 @@ type Logger struct {
 	logFile *os.File
 }
 
-func New(param config.Parametres) *Logger {
+func New(param *config.Parametres) *Logger {
 
 	if param.Global.LogFile == "" {
 		fmt.Println("logFile is empty")

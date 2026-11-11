@@ -30,7 +30,7 @@ const EtatFin = "fin"
 const MDCTache = "tache"
 const RESUME = "resume"
 
-func Run(param config.Parametres, logger *logutils.Logger) {
+func Run(param *config.Parametres, logger *logutils.Logger) {
 
 	debut := time.Now()
 
@@ -123,7 +123,7 @@ func formateDurationTelegrame(duree time.Duration) string {
 	return s
 }
 
-func envoieTelegrame(param config.Parametres, message string, logger *logutils.Logger) {
+func envoieTelegrame(param *config.Parametres, message string, logger *logutils.Logger) {
 	if param.Global.TelegramActive && len(param.Global.TelegramUrl) > 0 {
 
 		url := fmt.Sprintf("%sbot%s/sendMessage", param.Global.TelegramUrl, param.Global.TelegramToken)
@@ -152,7 +152,7 @@ func formateDuration(duration time.Duration) string {
 	}
 }
 
-func ecrireEtat(param config.Parametres, etat string, logger *logutils.Logger) error {
+func ecrireEtat(param *config.Parametres, etat string, logger *logutils.Logger) error {
 	if param.Global.EtatFile != "" {
 		err := os.WriteFile(param.Global.EtatFile, []byte(etat), 0644)
 		if err != nil {

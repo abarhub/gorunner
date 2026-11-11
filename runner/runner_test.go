@@ -3,6 +3,8 @@ package runner
 import (
 	"bytes"
 	"fmt"
+	"gorunner/config"
+	"gorunner/logutils"
 	"io"
 	"os"
 	"strings"
@@ -22,7 +24,11 @@ func Test_processOutput(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{"test1", args{reader: strings.NewReader("Bonjour, Alice"), prefix: "", encoding: "UTF-8", resultat: "Bonjour, Alice\n"}},
-		//{"test2", args{reader: strings.NewReader("Test 1,2,3 XXX"), prefix: "", encoding: "UTF-8", resultat: "Test 1,2,3 XXX\n"}},
+		{"test2", args{reader: strings.NewReader("Test 1,2,3 XXX"), prefix: "", encoding: "UTF-8", resultat: "Test 1,2,3 XXX\n"}},
+		{"test3", args{reader: strings.NewReader("ABC" + strings.Repeat("X", 5000)), prefix: "",
+			encoding: "UTF-8", resultat: "ABC" + strings.Repeat("X", 5000) + "\n"}},
+		{"test4", args{reader: strings.NewReader("UVW" + strings.Repeat("X", 500_000)), prefix: "",
+			encoding: "UTF-8", resultat: "UVW" + strings.Repeat("X", 500_000) + "\n"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -68,7 +74,11 @@ func Test_processOutput(t *testing.T) {
 				t.Fatalf("Erreur lors de la création du pipe : %v", err)
 			}
 
-			processOutput(tt.args.reader, tt.args.prefix, tt.args.encoding, nil)
+			param := config.New(tmpFile.Name())
+
+			logger := logutils.New(param)
+
+			processOutput(tt.args.reader, tt.args.prefix, tt.args.encoding, logger)
 
 			_ = w.Close()
 			os.Stdout = oldStdout

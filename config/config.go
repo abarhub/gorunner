@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/goccy/go-yaml"
 	"github.com/joho/godotenv"
@@ -40,10 +39,47 @@ type Parametres struct {
 	Tasks []Task
 }
 
-var param Parametres
-var once sync.Once
-
 const ENV_FILE = ".env"
+
+func NewDefaut(chargeVarEnv bool) *Parametres {
+	if chargeVarEnv {
+		chargeEnv()
+	}
+
+	configFile := "config.yml"
+
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
+
+	fmt.Println("configFile:", configFile)
+	fmt.Println("len:", len(os.Args))
+	return New(configFile)
+}
+
+func New(fichierConfig string) *Parametres {
+	data, err := os.ReadFile(fichierConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	expanded := os.ExpandEnv(string(data))
+
+	var param, param2 Parametres
+	if err := yaml.Unmarshal([]byte(expanded), &param2); err != nil {
+		fmt.Printf("error: %v\n", err)
+		os.Exit(1)
+	} else {
+		for i, t := range param2.Tasks {
+			if t.Name == "" {
+				param2.Tasks[i].Name = fmt.Sprintf("task-%d", i)
+			}
+			param2.Tasks[i].NameId = normalizeASCII(t.Name)
+		}
+		param = param2
+	}
+	return &param
+}
 
 func trouveFichierEnv() string {
 	ex, err := os.Executable()
@@ -86,47 +122,6 @@ func chargeEnv() {
 		fmt.Println("pas de fichier .env")
 	}
 
-}
-
-func initConfig() {
-
-	chargeEnv()
-
-	configFile := "config.yml"
-
-	if len(os.Args) > 1 {
-		configFile = os.Args[1]
-	}
-
-	fmt.Println("configFile:", configFile)
-	fmt.Println("len:", len(os.Args))
-
-	data, err := os.ReadFile(configFile)
-	if err != nil {
-		panic(err)
-	}
-
-	expanded := os.ExpandEnv(string(data))
-
-	var param2 Parametres
-	if err := yaml.Unmarshal([]byte(expanded), &param2); err != nil {
-		fmt.Printf("error: %v\n", err)
-		os.Exit(1)
-	} else {
-		for i, t := range param2.Tasks {
-			if t.Name == "" {
-				param2.Tasks[i].Name = fmt.Sprintf("task-%d", i)
-			}
-			param2.Tasks[i].NameId = normalizeASCII(t.Name)
-		}
-		param = param2
-	}
-}
-
-func GetConfig() Parametres {
-	once.Do(initConfig)
-
-	return param
 }
 
 func normalizeASCII(s string) string {

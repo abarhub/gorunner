@@ -14,7 +14,7 @@ func main() {
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	fmt.Printf("[%s] Démarrage du programme\n", timestamp)
 
-	param := config.GetConfig()
+	param := config.NewDefaut(true)
 
 	logger := logutils.New(param)
 
