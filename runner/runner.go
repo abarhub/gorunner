@@ -267,7 +267,7 @@ func contains(list []int, code int) bool {
 	return false
 }
 
-func processOutput(reader io.Reader, prefix string, encoding string) {
+func processOutput0(reader io.Reader, prefix string, encoding string) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -285,6 +285,65 @@ func processOutput(reader io.Reader, prefix string, encoding string) {
 	}
 }
 
+func processOutput(reader io.Reader, prefix string, encoding string) {
+	reader2 := bufio.NewReader(reader)
+
+	// Un buffer pour reconstituer la ligne morceau par morceau en mémoire
+	var lineBuffer bytes.Buffer
+
+	for {
+		// Lire jusqu'au prochain '\n'
+		fragment, err := reader2.ReadBytes('\n')
+
+		// On accumule le morceau lu, qu'il soit partiel ou complet
+		lineBuffer.Write(fragment)
+
+		if err != nil {
+			// 1. Fin du fichier atteinte
+			if errors.Is(err, io.EOF) {
+				// S'il reste des données dans le buffer, c'est la dernière ligne du fichier (sans '\n')
+				if lineBuffer.Len() > 0 {
+					traiterLigne(lineBuffer.Bytes(), prefix, encoding)
+				}
+				break
+			}
+
+			// 2. Le tampon interne est plein, mais la ligne continue
+			if errors.Is(err, bufio.ErrBufferFull) {
+				// Le fragment a déjà été écrit dans lineBuffer, on continue la boucle
+				// pour lire la suite de la même ligne.
+				continue
+			}
+
+			// 3. Autre erreur de lecture fatale
+			_, err2 := fmt.Fprintln(os.Stderr, "Erreur de lecture inattendue :", err)
+			if err2 != nil {
+				return
+			}
+			break
+		}
+
+		// Si err == nil, cela signifie qu'on a atteint le '\n'.
+		// La ligne est entièrement reconstituée dans lineBuffer !
+		traiterLigne(lineBuffer.Bytes(), prefix, encoding)
+
+		// On réinitialise le buffer pour la ligne suivante
+		lineBuffer.Reset()
+	}
+
+}
+
+func traiterLigne(ligne []byte, prefix string, encoding string) {
+	line := string(ligne)
+	if encoding != "" {
+		line = convertie(line, encoding)
+	}
+	line = strings.TrimRight(line, "\r\n")
+
+	// Afficher sur la console
+	logutils.Printf("%s%s", prefix, line)
+}
+
 func convertie(line string, encoding string) string {
 	if encoding == "Windows1252" {
 		s, err := decodeWindows1252ToUTF8(line)
@@ -300,6 +359,8 @@ func convertie(line string, encoding string) string {
 		} else {
 			return s
 		}
+	} else if encoding == "UTF-8" {
+		return line
 	} else {
 		logutils.Errorf("Type d'encodage non géré: %s", encoding)
 		return line
